@@ -1,0 +1,28 @@
+# Exclure le dossier de compilation Rust (très lourd)
+/target
+
+# Exclure les fichiers de base de données de travail locaux
+memories.db
+memories.db-journal
+memories.db-wal
+memories.db-shm
+Cargo.lock
+icom_controller.exe
+prompt.ia
+waterfall_history.bin
+gulli.rsa
+
+# Exclure l'historique du Waterfall sauvegardé
+waterfall_history.bin
+
+# Exclure les sauvegardes personnelles CSV
+settings_backup.csv
+memories_backup.csv
+eibi_backup.csv
+
+# Exclure tous les dossiers commençant par un V (majuscule)
+V*/
+
+# Si vous souhaitez également exclure ceux commençant par un v (minuscule)
+[Vv]*/
+

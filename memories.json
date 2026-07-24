@@ -1,0 +1,114 @@
+[
+  {
+    "category": "TIME",
+    "name": "WWV Colorado",
+    "frequency": 5000000,
+    "mode": "Am",
+    "description": "Standard Temps & Fréquence USA"
+  },
+  {
+    "category": "TIME",
+    "name": "WWV Colorado",
+    "frequency": 10000000,
+    "mode": "Am",
+    "description": "Standard Temps & Fréquence USA"
+  },
+  {
+    "category": "TIME",
+    "name": "MSF Anthorn",
+    "frequency": 60000,
+    "mode": "Cw",
+    "description": "Signal Horaire UK (VLF)"
+  },
+  {
+    "category": "UTILITY",
+    "name": "Shannon VOLMET",
+    "frequency": 5505000,
+    "mode": "Usb",
+    "description": "Météo Aviation Europe / Atlantique"
+  },
+  {
+    "category": "UTILITY",
+    "name": "RAF VOLMET",
+    "frequency": 5450000,
+    "mode": "Usb",
+    "description": "Météo Militaire UK"
+  },
+  {
+    "category": "UTILITY",
+    "name": "Gander Radio",
+    "frequency": 8891000,
+    "mode": "Usb",
+    "description": "Contrôle Aérien Atlantique Nord"
+  },
+  {
+    "category": "MARINE",
+    "name": "Distress SSB",
+    "frequency": 2182000,
+    "mode": "Usb",
+    "description": "Fréquence de Détresse Mondiale"
+  },
+  {
+    "category": "MARINE",
+    "name": "DSC GMDSS",
+    "frequency": 8414500,
+    "mode": "Usb",
+    "description": "Appel Sélectif Numérique Urgence"
+  },
+  {
+    "category": "MARINE",
+    "name": "Météo Marine France",
+    "frequency": 1650000,
+    "mode": "Usb",
+    "description": "Bulletins de sécurité côtiers"
+  },
+  {
+    "category": "BROADCAST",
+    "name": "Radio Taiwan Int.",
+    "frequency": 11995000,
+    "mode": "Am",
+    "description": "Service Français (Fréquence Variable)"
+  },
+  {
+    "category": "BROADCAST",
+    "name": "China Radio Int.",
+    "frequency": 13645000,
+    "mode": "Am",
+    "description": "Service Français vers l'Europe"
+  },
+  {
+    "category": "BROADCAST",
+    "name": "BBC World Service",
+    "frequency": 12095000,
+    "mode": "Am",
+    "description": "Service Mondial Anglais"
+  },
+  {
+    "category": "BROADCAST",
+    "name": "KBS World Radio",
+    "frequency": 9570000,
+    "mode": "Am",
+    "description": "Service Coréen vers Europe"
+  },
+  {
+    "category": "PIRATE",
+    "name": "Echo Charlie",
+    "frequency": 6666000,
+    "mode": "Lsb",
+    "description": "Bande Pirate historique Europe"
+  },
+  {
+    "category": "PIRATE",
+    "name": "Triple 5 DX",
+    "frequency": 27555000,
+    "mode": "Usb",
+    "description": "Fréquence d'appel DX 11m"
+  },
+  {
+    "category": "PIRATE",
+    "name": "Alpha Tango",
+    "frequency": 27195000,
+    "mode": "Usb",
+    "description": "Canal Pirate USB 11m"
+  }
+]

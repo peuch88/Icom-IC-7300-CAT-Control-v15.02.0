@@ -1,0 +1,14 @@
+[package]
+name = "icom_controller"
+version = "12.0.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.27"          # Interface graphique
+serialport = "4.3"       # Port USB série
+crossbeam-channel = "0.5"# Communication threads
+rusqlite = { version = "0.31", features = ["bundled"] } # Base de données SQLite
+ureq = "2.9"             # Client HTTP léger pour le téléchargement
+
+[build-dependencies]
+winres = "0.1"           # Intégration des ressources Windows (icône, métadonnées)

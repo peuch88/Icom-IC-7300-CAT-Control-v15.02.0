@@ -1,0 +1,53 @@
+============================================================
+              CONTRÔLEUR ICOM IC-7300 - MINI WIKI
+============================================================
+Fichier info.txt librement éditable sur votre disque.
+Version du contrôleur : 14.19.0
+
+Bienvenue dans le guide d'utilisation de votre console CAT.
+
+1. CONFIGURATION INITIALE
+-------------------------
+- Branchez votre câble USB Icom IC-7300 sur votre PC.
+- Ouvrez la fenêtre "⚙ Paramètres de Communication" dans l'en-tête de l'application.
+- Sélectionnez le port série identifié et la vitesse (baudrate).
+- La vitesse de transmission par défaut conseillée de l'IC-7300 est de 115 200 bauds.
+- Cliquez sur le bouton "Connecter le Transceiver".
+
+2. CONTRÔLE DE FRÉQUENCE ET VFO
+--------------------------------
+- Molette de la souris : Survolez simplement l'écran LCD de fréquence ou le bouton VFO rotatif et faites tourner la molette de votre souris. Faire défiler vers le haut augmente la fréquence d'un pas (Step), vers le bas la diminue.
+- Sélection interactive du pas (Tuning Step) : Cliquez directement sur l'un des chiffres de la fréquence sur l'écran LCD virtuel. Le chiffre du pas actif s'illumine d'un jaune chaud. Le pas s'ajuste instantanément (de 1 Hz à 1 MHz) selon la décimale cliquée.
+- Cadran rotatif 3D : Cliquez et faites glisser le gros bouton rotatif virtuel (effet aluminium brossé) pour accorder la fréquence de façon fluide.
+- Raccourcis clavier (lorsque le panneau VFO est survolé par la souris) :
+  * Flèche GAUCHE / DROITE : Permet de changer la valeur du pas (STEP) du VFO.
+  * Flèche HAUT / BAS : Incrémente ou décrémente la fréquence selon le pas actif.
+
+3. ÉMISSION ET GESTION DU PTT (RX / TX)
+---------------------------------------
+- Mode d'émission classique (PTT temporaire) :
+  Laissez "TX LOCK" sur OFF. Si vous survolez l'application avec votre souris, maintenez la touche "Barre d'Espace" enfoncée pour passer en émission (TX). Le bouton d'état s'illumine en rouge "TX ACTIF". Relâchez la barre d'espace pour repasser instantanément en réception (RX).
+- Mode d'émission verrouillé (TX Lock) :
+  Activez "TX LOCK" sur ON (le bouton s'illumine en orange). Un appui rapide sur la "Barre d'Espace" commute alors l'état d'émission de manière persistante (un appui pour émettre, un autre pour couper).
+
+4. BASE DE DONNÉES MÉMOIRES ET BASE MONDIALE EIBI
+--------------------------------------------------
+- Gérer les mémoires : Ouvrez l'outil "📁 Gérer les Mémoires SQL" pour enregistrer, modifier ou supprimer vos fréquences préférées avec leur mode, filtre et préampli.
+- Base EiBi Space :
+  * Allez sur l'onglet "🌐 EIBI" dans la colonne de droite.
+  * Cliquez sur "📥 Télécharger" pour peupler votre base SQLite avec l'ensemble des horaires mondiaux répertoriés (mises à jour en direct).
+  * Recherchez par fréquence (ex: 6070) ou par station (ex: Taiwan).
+- Stations probables (bas de colonne de droite) :
+  L'application analyse votre heure UTC actuelle et vous suggère instantanément les stations en ondes dans un rayon de ±2 kHz autour de la fréquence du VFO. 
+  * Clic sur la ligne : Syntonise immédiatement la radio sur la fréquence et le mode de la station.
+  * Clic sur le bouton [ℹ] : Ouvre une recherche d'informations sur Google dans un nouvel onglet de votre navigateur.
+
+5. BACKUPS CSV
+--------------
+L'outil "📥 Import/Export CSV" vous permet de sauvegarder ou de restaurer vos réglages, vos mémoires personnalisées ou votre table d'horaires EiBi sous forme de fichiers .csv standards sur votre disque.
+
+6. INTERFACE PHYSIQUE & MÉTROLOGIE SEGMENTÉE
+--------------------------------------------
+- Touches 3D tactiles : Les commutateurs (Modes, Filtres, AGC, Préamp, Atténuateur, Tuner) imitent des touches physiques rigides qui s'enfoncent visiblement d'un pixel et demi sous la souris ou lorsqu'elles sont actives.
+- Métrologie LED : Les indicateurs (S-Meter en RX, PO, SWR, ALC, COMP en TX) sont représentés sous forme de bargraphes à segments LED. En réception, la couleur de la barre évolue progressivement du vert (signal faible) au jaune (S9) puis au rouge vif (S9+60dB).
+- Potentiomètres à glissière (Faders) : Les gains (Volume, RF Gain, Squelch, Mic, Compresseur, Moniteur, Puissance) s'ajustent à l'aide de curseurs physiques dotés d'une tête en métal argenté et d'un retour exact de la valeur en pourcentage.
