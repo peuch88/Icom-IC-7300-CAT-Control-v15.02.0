@@ -1,17 +1,17 @@
 ### Téléchargement Versions:
 
-[setup_icom_controller_v15.02.0.exe](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/setup_icom_controller_v15.02.0.exe)
+[setup_icom_controller_v15.02.0.exe](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2Fsetup_icom_controller_v15.02.0.exe)
 
-[setup_icom_controller_v15.03.0.exe](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/setup_icom_controller_v15.03.0.exe)
+[setup_icom_controller_v15.03.0.exe](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2Fsetup_icom_controller_v15.03.0.exe)
 
-[setup_icom_controller_v15.03.12.exe](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/setup_icom_controller_v15.03.12.exe)
+[setup_icom_controller_v15.03.12.exe](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2Fsetup_icom_controller_v15.3.12.exe)
 
-[setup_icom_controller_v15.04.0.exe](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/setup_icom_controller_v15.04.0.exe)
+[setup_icom_controller_v15.04.0.exe](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2Fsetup_icom_controller_v15.4.0.exe)
 
 
 utilisation et configurations
 
-[Manuel d'utilisation](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/Tutoriel-géneral.html)
+[Manuel d'utilisation](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2FTutoriel+g%C3%A9neral.html)
 
 
 
