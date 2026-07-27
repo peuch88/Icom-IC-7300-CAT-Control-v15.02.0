@@ -13,6 +13,12 @@ utilisation et configurations
 
 [Manuel d'utilisation](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2FTutoriel+g%C3%A9neral.html)
 
+[Ports virtuel et MMSSTV](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2FTutoriel+virtual+com0com.html)
+
+[Compilation de l'application](https://14frs1525.fr/download/telecharger.php?file=Icom+7300%2FTutoriel+compilation.html)
+
+[Ma page de téléchargement](https://14frs1525.fr/download/)
+
 
 
         NOTICE D'UTILISATION - CONTRÔLEUR ICOM IC-7300 CAT PRO
