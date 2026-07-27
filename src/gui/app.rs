@@ -1,5 +1,5 @@
-// src/gui/app.rs
-// Version : 15.02.0 - Ajout des méthodes d'allumage automatisé (connect_and_power_on) et d'extinction propre (power_off_and_disconnect)
+// Version : V15.04.02 - Intégration du port virtuel Proxy CAT (proxy_port_name) dans le modèle principal Ic7300App
+// Module de gestion de la structure Ic7300App, de la persistance et des commandes principales
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -13,8 +13,9 @@ use crate::database::{
     DbMemoryEntry, EibiEntry
 };
 use crate::gui::scope::ScopeState;
+use crate::gui::keyer::KeyerState; // Importation de l'état de l'automate d'appels
 
-pub const VERSION: &str = "15.02.0"; // Version de l'application
+pub const VERSION: &str = "15.04.02"; // Version de l'application
 const DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 #[derive(Clone, Copy, PartialEq)]
@@ -59,6 +60,7 @@ pub const PIRATE_BANDS: &[BandInfo] = &[
 pub struct Ic7300App {
     pub(crate) port_name: String,
     pub(crate) baud_rate: u32,
+    pub(crate) proxy_port_name: String, // Port COM virtuel pour le pont avec MMSSTV
     pub(crate) available_ports: Vec<String>,
     pub(crate) show_config_window: bool,
     pub(crate) show_gains_window: bool,
@@ -86,6 +88,7 @@ pub struct Ic7300App {
     pub(crate) noise_blanker_level: u8,
     pub(crate) noise_reduction_level: u8,
     pub(crate) scope_state: ScopeState,
+    pub(crate) keyer_state: KeyerState, // Stockage de l'état du lanceur d'appel automatique
     pub(crate) usb_rx_level: u8,
     pub(crate) usb_tx_level: u8,
     pub(crate) frequency_a: u64,
@@ -151,6 +154,7 @@ impl Default for Ic7300App {
 
         let mut port_name = default_port;
         let mut baud_rate = 115200;
+        let mut proxy_port_name = "".to_owned();
         let mut frequency = 14_074_000;
         let mut mode = RadioMode::Usb;
         let mut filter = 1;
@@ -190,6 +194,7 @@ impl Default for Ic7300App {
         let saved_settings = db_load_settings();
         if let Some(val) = saved_settings.get("port_name") { port_name = val.clone(); }
         if let Some(val) = saved_settings.get("baud_rate") { if let Ok(parsed) = val.parse() { baud_rate = parsed; } }
+        if let Some(val) = saved_settings.get("proxy_port_name") { proxy_port_name = val.clone(); }
         if let Some(val) = saved_settings.get("frequency") { if let Ok(parsed) = val.parse() { frequency = parsed; } }
         if let Some(val) = saved_settings.get("mode") {
             mode = match val.as_str() {
@@ -288,6 +293,40 @@ impl Default for Ic7300App {
         scope_state.waterfall_palette = scope_waterfall_palette;
         scope_state.center_frequency = frequency;
 
+        // Initialisation de la structure KeyerState
+        let mut keyer_state = KeyerState::new();
+        
+        // Désérialisation complète des 20 mémoires du Keyer depuis la base SQLite au démarrage
+        for i in 0..20 {
+            if let Some(val) = saved_settings.get(&format!("keyer_label_{}", i)) {
+                keyer_state.memories[i].label = val.clone();
+            }
+            if let Some(val) = saved_settings.get(&format!("keyer_duration_{}", i)) {
+                if let Ok(parsed) = val.parse() {
+                    keyer_state.memories[i].duration_secs = parsed;
+                }
+            }
+            if let Some(val) = saved_settings.get(&format!("keyer_interval_{}", i)) {
+                if let Ok(parsed) = val.parse() {
+                    keyer_state.memories[i].interval_secs = parsed;
+                }
+            }
+            if let Some(val) = saved_settings.get(&format!("keyer_datamode_{}", i)) {
+                keyer_state.memories[i].data_mode = val == "1";
+            }
+            if let Some(val) = saved_settings.get(&format!("keyer_mp3path_{}", i)) {
+                keyer_state.memories[i].mp3_path = val.clone();
+            }
+        }
+        
+        // Restauration de la carte son sélectionnée par l'utilisateur
+        if let Some(val) = saved_settings.get("keyer_chosen_device") {
+            keyer_state.chosen_device_name = val.clone();
+        }
+        
+        // Rafraîchit les libellés de cartes son physiques
+        keyer_state.refresh_device_name();
+
         // Allocation de la grille Waterfall de départ
         scope_state.waterfall_image = egui::ColorImage {
             size: [scope_waterfall_width, scope_waterfall_height],
@@ -326,13 +365,14 @@ Fichier info.txt éditable.
         });
 
         Self {
-            port_name, baud_rate, available_ports: ports, 
+            port_name, baud_rate, proxy_port_name, available_ports: ports, 
             show_config_window: false, show_gains_window: false, is_connected: false,
             frequency, freq_input, mode, filter, is_data_mode, is_tx: false, tx_lock,
             af_gain, rf_gain, squelch, mic_gain, rf_power, comp_level, monitor_level, preamp, attenuator, agc, tuner,
             noise_blanker, noise_reduction,
             noise_blanker_level, noise_reduction_level,
             scope_state,
+            keyer_state,
             usb_rx_level, usb_tx_level,
             frequency_a, frequency_b,
             mode_a, mode_b,
@@ -374,7 +414,24 @@ impl Ic7300App {
         let exit_flag = self.thread_exit_flag.clone();
         let ctx_clone = ctx.clone();
 
-        spawn_radio_thread(self.port_name.clone(), self.baud_rate, rx, tx_radio, exit_flag, ctx_clone)?;
+        // Conversion asynchrone sécurisée de l'option de port COM virtuel du Proxy
+        let proxy_port_opt = if self.proxy_port_name.trim().is_empty() {
+            None
+        } else {
+            Some(self.proxy_port_name.trim().to_owned())
+        };
+
+        // Lancement asynchrone du thread série incluant le routage vers le Proxy
+        spawn_radio_thread(
+            self.port_name.clone(),
+            self.baud_rate,
+            proxy_port_opt,
+            self.tx_cmd.as_ref().unwrap().clone(), // Clone pour le Proxy
+            rx,
+            tx_radio,
+            exit_flag,
+            ctx_clone,
+        )?;
 
         self.is_connected = true;
         self.show_config_window = false;
@@ -452,6 +509,7 @@ impl Ic7300App {
         self.send_cmd(Command::SetNoiseBlankerLevel(self.noise_blanker_level));
         self.send_cmd(Command::SetNoiseReductionLevel(self.noise_reduction_level));
         self.send_cmd(Command::SetScopeOutput(self.scope_state.enabled));
+        self.send_cmd(Command::SetScopeSpan(self.scope_state.span)); // Synchronisation initiale du Span
         self.send_cmd(Command::SetUsbRxLevel(self.usb_rx_level));
         self.send_cmd(Command::SetUsbTxLevel(self.usb_tx_level));
         self.send_cmd(Command::SetPTT(self.is_tx));
@@ -513,7 +571,7 @@ impl Ic7300App {
             RadioMode::Lsb => "LSB", RadioMode::Usb => "USB",
             RadioMode::Am => "AM", RadioMode::Cw => "CW", RadioMode::Fm => "FM",
         };
-        let settings = vec![
+        let mut settings = vec![
             ("port_name", self.port_name.clone()),
             ("baud_rate", self.baud_rate.to_string()),
             ("frequency", self.frequency.to_string()),
@@ -561,6 +619,45 @@ impl Ic7300App {
             ("is_data_mode_a", (if self.is_data_mode_a { "1" } else { "0" }).to_owned()),
             ("is_data_mode_b", (if self.is_data_mode_b { "1" } else { "0" }).to_owned()),
         ];
+
+        // Stockage des clés formatées dynamiquement pour prolonger leur durée de vie (lifetime)
+        let mut temp_keys = Vec::with_capacity(102);
+        
+        // Sérialisation des 20 mémoires du Keyer
+        for i in 0..20 {
+            let k_label = format!("keyer_label_{}", i);
+            let k_dur = format!("keyer_duration_{}", i);
+            let k_int = format!("keyer_interval_{}", i);
+            let k_data = format!("keyer_datamode_{}", i);
+            let k_path = format!("keyer_mp3path_{}", i);
+            
+            temp_keys.push(k_label);
+            temp_keys.push(k_dur);
+            temp_keys.push(k_int);
+            temp_keys.push(k_data);
+            temp_keys.push(k_path);
+        }
+        
+        let k_dev = "keyer_chosen_device".to_owned();
+        temp_keys.push(k_dev);
+
+        let k_proxy = "proxy_port_name".to_owned();
+        temp_keys.push(k_proxy);
+        
+        // Pousse en toute sécurité les références et valeurs associées
+        for i in 0..20 {
+            let mem = &self.keyer_state.memories[i];
+            let idx = i * 5;
+            settings.push((&temp_keys[idx], mem.label.clone()));
+            settings.push((&temp_keys[idx + 1], mem.duration_secs.to_string()));
+            settings.push((&temp_keys[idx + 2], mem.interval_secs.to_string()));
+            settings.push((&temp_keys[idx + 3], (if mem.data_mode { "1" } else { "0" }).to_owned()));
+            settings.push((&temp_keys[idx + 4], mem.mp3_path.clone()));
+        }
+        
+        settings.push((&temp_keys[100], self.keyer_state.chosen_device_name.clone()));
+        settings.push((&temp_keys[101], self.proxy_port_name.clone()));
+
         let _ = db_save_settings_batch(&settings);
 
         // Sauvegarde binaire de l'historique de défilement (pixels) du Waterfall

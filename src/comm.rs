@@ -1,5 +1,5 @@
-// src/comm.rs
-// Version : 15.02.0 - Ajout de la gestion de mise sous/hors tension (Power ON/OFF) par trame de réveil série longue
+// Version : V15.04.01 - Implémentation du Proxy CAT intégré asynchrone (Bridge virtuel CI-V) pour les logiciels tiers comme MMSSTV
+// Module de communication série asynchrone CI-V pour l'Icom IC-7300
 
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -44,6 +44,7 @@ pub enum RadioUpdate {
     NoiseBlankerLevel(u8),
     NoiseReductionLevel(u8),
     ScopeSweep(Vec<u8>),       // Ligne de spectre complète (475 points)
+    ScopeSpan(u32),            // Signalisation dynamique du Span physique décodé (total span en Hz)
     UsbRxLevel(u8),
     UsbTxLevel(u8),
     Disconnected(String),
@@ -75,7 +76,8 @@ pub enum Command {
     SetNoiseBlankerLevel(u8),
     SetNoiseReductionLevel(u8),
     SetScopeOutput(bool),     // Commande d'activation/désactivation du Scope physique + flux (27 10 & 27 11)
-    SetPower(bool),           // Ajouté : Commande d'alimentation ON/OFF (18 00 / 18 01)
+    SetScopeSpan(u32),        // Force le Span de l'analyseur sur la radio (total span en Hz)
+    SetPower(bool),           // Commande d'alimentation ON/OFF (18 00 / 18 01)
     SetUsbRxLevel(u8),
     SetUsbTxLevel(u8),
     Disconnect,
@@ -114,6 +116,64 @@ pub fn bcd_to_u8(bytes: &[u8]) -> u8 {
     }
 }
 
+/// Convertit le Span d'IHM (Hz) vers les 6 octets BCD standard de la commande 27 15 (LSB First)
+pub fn span_to_bcd_bytes(total_span: u32) -> [u8; 6] {
+    match total_span {
+        5_000 => [0x00, 0x00, 0x25, 0x00, 0x00, 0x00],     // ±2.5 kHz -> Écran: 2500 Hz -> Byte 3 = 0x25
+        10_000 => [0x00, 0x00, 0x50, 0x00, 0x00, 0x00],    // ±5.0 kHz -> Écran: 5000 Hz -> Byte 3 = 0x50
+        20_000 => [0x00, 0x00, 0x00, 0x01, 0x00, 0x00],    // ±10 kHz  -> Écran: 10000 Hz -> Byte 4 = 0x01 (car 10 kHz)
+        50_000 => [0x00, 0x00, 0x50, 0x02, 0x00, 0x00],    // ±25 kHz  -> Écran: 25000 Hz -> Byte 3 = 0x50, Byte 4 = 0x02
+        100_000 => [0x00, 0x00, 0x00, 0x05, 0x00, 0x00],   // ±50 kHz  -> Écran: 50000 Hz -> Byte 4 = 0x05 (car 50 kHz)
+        200_000 => [0x00, 0x00, 0x00, 0x10, 0x00, 0x00],   // ±100 kHz -> Écran: 100000 Hz -> Byte 4 = 0x10 (car 100 kHz)
+        500_000 => [0x00, 0x00, 0x00, 0x25, 0x00, 0x00],   // ±250 kHz -> Écran: 250000 Hz -> Byte 4 = 0x25 (car 250 kHz)
+        1_000_000 => [0x00, 0x00, 0x00, 0x50, 0x00, 0x00], // ±500 kHz -> Écran: 500000 Hz -> Byte 4 = 0x50 (car 500 kHz)
+        _ => [0x00, 0x00, 0x50, 0x00, 0x00, 0x00],         // Par défaut ±5.0 kHz (10 000 Hz)
+    }
+}
+
+/// Décodeur hybride : Reçoit 5 octets (depuis le flux 27 00) ou 6 octets (depuis la trame 27 15) et extrait la valeur réelle
+pub fn bcd_to_span_val(bcd: &[u8]) -> u32 {
+    if bcd.len() < 5 { return 0; }
+    
+    // Normalisation des octets :
+    // - Si longueur = 6 octets (polling) : Byte 3, 4 et 5 sont aux indices bcd[2], bcd[3], bcd[4]
+    // - Si longueur = 5 octets (extrait du flux 27 00) : Byte 3, 4 et 5 sont décalés d'un cran à gauche, aux indices bcd[1], bcd[2], bcd[3]
+    let (byte_3, byte_4, byte_5) = if bcd.len() == 6 {
+        (bcd[2], bcd[3], bcd[4])
+    } else {
+        (bcd[1], bcd[2], bcd[3])
+    };
+    
+    let d_1k = (byte_3 >> 4) & 0x0F;   // Chiffre des 1 kHz (poids fort de l'octet 3)
+    let d_100h = byte_3 & 0x0F;        // Chiffre des 100 Hz (poids faible de l'octet 3)
+    
+    let d_100k = (byte_4 >> 4) & 0x0F; // Chiffre des 100 kHz (poids fort de l'octet 4)
+    let d_10k = byte_4 & 0x0F;         // Chiffre des 10 kHz (poids faible de l'octet 4)
+    
+    let d_10m = (byte_5 >> 4) & 0x0F;  // Chiffre des 10 MHz (poids fort de l'octet 5)
+    let d_1m = byte_5 & 0x0F;          // Chiffre des 1 MHz (poids faible de l'octet 5)
+    
+    let val_hz = d_10m as u32 * 10_000_000
+               + d_1m as u32 * 1_000_000
+               + d_100k as u32 * 100_000 
+               + d_10k as u32 * 10_000 
+               + d_1k as u32 * 1_000 
+               + d_100h as u32 * 100;
+               
+    // Mappe l'écart d'affichage physique de la radio vers la largeur de spectre totale modélisée
+    match val_hz {
+        2_500 => 5_000,
+        5_000 => 10_000,
+        10_000 => 20_000,
+        25_000 => 5_000,
+        50_000 => 100_000,
+        100_000 => 200_000,
+        250_000 => 500_000,
+        500_000 => 1_000_000,
+        _ => 0,
+    }
+}
+
 pub fn build_civ_frame(cmd: u8, subcmd: Option<u8>, data: &[u8]) -> Vec<u8> {
     let mut frame = vec![0xFE, 0xFE, IC7300_ADDR, PC_ADDR, cmd];
     if let Some(sc) = subcmd { frame.push(sc); }
@@ -121,10 +181,139 @@ pub fn build_civ_frame(cmd: u8, subcmd: Option<u8>, data: &[u8]) -> Vec<u8> {
     frame
 }
 
+/// Démarre l'écoute asynchrone d'un port série virtuel (Proxy CAT / Bridge) pour répondre aux requêtes de MMSSTV (ou autre logiciel)
+pub fn spawn_proxy_thread(
+    proxy_port_name: String,
+    baud_rate: u32,
+    tx_to_main: Sender<Command>,        // Canal pour injecter des ordres de VFO/PTT vers l'app
+    rx_from_main: Receiver<RadioUpdate>, // Canal pour synchroniser le cache à partir de l'état réel
+    exit_flag: Arc<AtomicBool>,
+) -> Result<(), String> {
+    let port_builder = serialport::new(&proxy_port_name, baud_rate).timeout(Duration::from_millis(10));
+    let mut port = match port_builder.open() {
+        Ok(p) => p,
+        Err(e) => return Err(format!("Erreur d'ouverture du port proxy virtuel: {}", e)),
+    };
+
+    thread::spawn(move || {
+        let mut read_buf = vec![0; 1024];
+        let mut serial_buffer = Vec::new();
+        
+        let mut current_frequency = 14_074_000u64;
+        let mut current_mode = RadioMode::Usb;
+        let mut current_filter = 1u8;
+        let mut current_data_mode = false;
+
+        while !exit_flag.load(Ordering::SeqCst) {
+            // 1. Mise à jour en temps réel du cache local du proxy à partir de l'état réel de la radio
+            while let Ok(update) = rx_from_main.try_recv() {
+                match update {
+                    RadioUpdate::Frequency(f) => current_frequency = f,
+                    RadioUpdate::ModeAndFilter(m, filter, is_data) => {
+                        current_mode = m;
+                        current_filter = filter;
+                        current_data_mode = is_data;
+                    }
+                    _ => {}
+                }
+            }
+
+            // 2. Lecture des requêtes CAT provenant de MMSSTV (ou autre)
+            match port.read(&mut read_buf) {
+                Ok(bytes_read) => {
+                    if bytes_read > 0 {
+                        serial_buffer.extend_from_slice(&read_buf[..bytes_read]);
+                    }
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
+                Err(_) => {
+                    break; // Déconnexion du port virtuel
+                }
+            }
+
+            // 3. Décodage et réponse aux trames CI-V simulées
+            while let Some(fe_idx) = serial_buffer.windows(2).position(|w| w == [0xFE, 0xFE]) {
+                if let Some(fd_idx) = serial_buffer[fe_idx..].iter().position(|&b| b == 0xFD) {
+                    let frame_end = fe_idx + fd_idx;
+                    let frame = &serial_buffer[fe_idx..=frame_end];
+                    
+                    // Vérifie si la trame est destinée à la radio (94) en provenance du PC (E0)
+                    if frame.len() >= 6 && frame[2] == IC7300_ADDR && frame[3] == PC_ADDR {
+                        let cmd = frame[4];
+                        match cmd {
+                            0x03 => {
+                                // MMSSTV demande la fréquence actuelle. Réponse immédiate avec le cache :
+                                let bcd = freq_to_bcd(current_frequency);
+                                let mut resp = vec![0xFE, 0xFE, PC_ADDR, IC7300_ADDR, 0x03];
+                                resp.extend_from_slice(&bcd);
+                                resp.push(0xFD);
+                                let _ = port.write_all(&resp);
+                            }
+                            0x04 => {
+                                // MMSSTV demande le mode de modulation actuel :
+                                let mode_byte = current_mode as u8;
+                                let mut resp = vec![0xFE, 0xFE, PC_ADDR, IC7300_ADDR, 0x04, mode_byte, current_filter];
+                                if current_data_mode {
+                                    resp.push(0x01); // Mode DATA
+                                }
+                                resp.push(0xFD);
+                                let _ = port.write_all(&resp);
+                            }
+                            0x05 => {
+                                // MMSSTV modifie la fréquence d'accord :
+                                if frame.len() >= 11 {
+                                    let mut f = 0u64;
+                                    let mut multiplier = 1u64;
+                                    for i in 0..5 {
+                                        let b = frame[5 + i];
+                                        let lower = b & 0x0F;
+                                        let upper = (b >> 4) & 0x0F;
+                                        f += (lower as u64) * multiplier; multiplier *= 10;
+                                        f += (upper as u64) * multiplier; multiplier *= 10;
+                                    }
+                                    if f >= 30_000 && f <= 74_800_000 {
+                                        // On injecte la commande vers la radio physique
+                                        let _ = tx_to_main.send(Command::SetFrequency(f));
+                                    }
+                                }
+                                // Réponse OK standard de la radio
+                                let _ = port.write_all(&[0xFE, 0xFE, PC_ADDR, IC7300_ADDR, 0xFB, 0xFD]);
+                            }
+                            0x1C => {
+                                // MMSSTV active ou désactive le PTT :
+                                if frame.len() >= 8 && frame[5] == 0x00 {
+                                    let ptt_state = frame[6] == 0x01;
+                                    // Injecte la commande PTT vers l'automate de notre application
+                                    let _ = tx_to_main.send(Command::SetPTT(ptt_state));
+                                }
+                                // Réponse OK standard
+                                let _ = port.write_all(&[0xFE, 0xFE, PC_ADDR, IC7300_ADDR, 0xFB, 0xFD]);
+                            }
+                            _ => {
+                                // Répond positivement (ACK OK) à toute autre commande pour satisfaire MMSSTV
+                                let _ = port.write_all(&[0xFE, 0xFE, PC_ADDR, IC7300_ADDR, 0xFB, 0xFD]);
+                            }
+                        }
+                    }
+                    serial_buffer.drain(..=frame_end);
+                } else {
+                    if serial_buffer.len() > 1024 { serial_buffer.drain(..=fe_idx); }
+                    break;
+                }
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+    });
+
+    Ok(())
+}
+
 /// Démarre le thread de communication série avec un Watchdog de connexion actif
 pub fn spawn_radio_thread(
     port_name: String,
     baud_rate: u32,
+    proxy_port_name: Option<String>, // Nom optionnel du port série virtuel de proxy (ex: Some("COM15"))
+    tx_cmd_clone: Sender<Command>,   // Clone du canal émetteur de commandes pour le proxy
     rx: Receiver<Command>,
     tx_radio: Sender<RadioUpdate>,
     exit_flag: Arc<AtomicBool>,
@@ -155,12 +344,29 @@ pub fn spawn_radio_thread(
         let mut rx_poll_index = 0;
         let mut tx_poll_index = 0;
 
+        // Canal interne asynchrone pour synchroniser le cache du Proxy CAT virtuel
+        let (tx_to_proxy, rx_for_proxy) = crossbeam_channel::unbounded::<RadioUpdate>();
+
+        // Lancement asynchrone du thread de Proxy CAT s'il est configuré
+        if let Some(proxy_port) = proxy_port_name {
+            let _ = spawn_proxy_thread(
+                proxy_port,
+                baud_rate,
+                tx_cmd_clone,
+                rx_for_proxy,
+                exit_flag.clone(),
+            );
+        }
+
         let send_update = |update: RadioUpdate| {
-            if tx_radio.send(update).is_ok() { ctx_clone.request_repaint(); }
+            // Met à jour la file d'attente de l'IHM principale
+            if tx_radio.send(update.clone()).is_ok() { ctx_clone.request_repaint(); }
+            // Met à jour en temps réel le cache local du Proxy CAT
+            let _ = tx_to_proxy.send(update);
         };
 
         while !exit_flag.load(Ordering::SeqCst) {
-            // Lecture des commandes de l'UI
+            // Lecture des commandes de l'IHM ou du Proxy CAT
             while let Ok(cmd) = rx.try_recv() {
                 match cmd {
                     Command::SetFrequency(freq) => { let _ = port.write_all(&build_civ_frame(0x05, None, &freq_to_bcd(freq))); }
@@ -210,6 +416,15 @@ pub fn spawn_radio_thread(
                         let _ = port.write_all(&build_civ_frame(0x27, Some(0x10), &[state_byte]));
                         thread::sleep(Duration::from_millis(20)); 
                         let _ = port.write_all(&build_civ_frame(0x27, Some(0x11), &[state_byte]));
+                    }
+                    Command::SetScopeSpan(span) => {
+                        // FORCE LE MODE CENTER (27 14 00 00) - 2 octets requis : MAIN scope (0x00) + Center mode (0x00)
+                        let _ = port.write_all(&build_civ_frame(0x27, Some(0x14), &[0x00, 0x00]));
+                        thread::sleep(Duration::from_millis(25));
+                        
+                        // Envoi de la commande de Span réalignée
+                        let bcd = span_to_bcd_bytes(span);
+                        let _ = port.write_all(&build_civ_frame(0x27, Some(0x15), &bcd));
                     }
                     Command::SetPower(val) => {
                         if val {
@@ -278,9 +493,10 @@ pub fn spawn_radio_thread(
                         18 => { let _ = port.write_all(&[0xFE, 0xFE, IC7300_ADDR, PC_ADDR, 0x16, 0x40, 0xFD]); }
                         19 => { let _ = port.write_all(&[0xFE, 0xFE, IC7300_ADDR, PC_ADDR, 0x14, 0x12, 0xFD]); }
                         20 => { let _ = port.write_all(&[0xFE, 0xFE, IC7300_ADDR, PC_ADDR, 0x14, 0x06, 0xFD]); }
+                        21 => { let _ = port.write_all(&[0xFE, 0xFE, IC7300_ADDR, PC_ADDR, 0x27, 0x15, 0xFD]); } // Interroge l'état actuel du Span
                         _ => {}
                     }
-                    rx_poll_index = (rx_poll_index + 1) % 21;
+                    rx_poll_index = (rx_poll_index + 1) % 22;
                 }
             } else {
                 if now.duration_since(last_meter_poll) >= Duration::from_millis(40) {
@@ -322,13 +538,26 @@ pub fn spawn_radio_thread(
 
                         let cmd = frame[4];
                         
-                        // Décodage des trames du spectre
+                        // Décodage des trames d'analyseur de spectre et de Span
                         if cmd == 0x27 && frame.len() >= 9 {
                             let sub_cmd = frame[5];
                             if sub_cmd == 0x00 {
                                 let order_curr = frame[7];
                                 if order_curr == 0x01 {
                                     scope_accumulation_buffer.clear();
+                                    
+                                    // Extraction passive du Span depuis le 1er paquet du flux de spectre (27 00).
+                                    // Le 1er paquet fait exactement 22 octets de long en mode Center/SCROLL-C.
+                                    if frame.len() >= 22 {
+                                        let scope_mode = frame[9];
+                                        if scope_mode == 0x00 || scope_mode == 0x02 { // 0x00 = Center, 0x02 = SCROLL-C
+                                            let bcd_span = &frame[15..20]; // 5 octets
+                                            let detected_span = bcd_to_span_val(bcd_span);
+                                            if detected_span > 0 {
+                                                send_update(RadioUpdate::ScopeSpan(detected_span));
+                                            }
+                                        }
+                                    }
                                 } else if order_curr >= 0x02 && order_curr <= 0x11 {
                                     if frame.len() >= 10 {
                                         let data_slice = &frame[9..frame.len() - 1];
@@ -339,6 +568,13 @@ pub fn spawn_radio_thread(
                                             send_update(RadioUpdate::ScopeSweep(scope_accumulation_buffer.clone()));
                                         }
                                     }
+                                }
+                            } else if sub_cmd == 0x15 && frame.len() >= 13 {
+                                // Réception et décodage de l'état du Span envoyé par l'Icom (ex: via polling de secours)
+                                let bcd_data = &frame[6..12]; // 6 octets
+                                let detected_span = bcd_to_span_val(bcd_data);
+                                if detected_span > 0 {
+                                    send_update(RadioUpdate::ScopeSpan(detected_span));
                                 }
                             }
                         }

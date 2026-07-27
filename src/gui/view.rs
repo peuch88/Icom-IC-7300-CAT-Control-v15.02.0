@@ -1,5 +1,5 @@
-// src/gui/view.rs
-// Version : 15.02.0 - Intégration graphique des boutons d'allumage ("⏻ Allumer") et d'extinction ("⏻ Éteindre") dans l'en-tête [1.1]
+// Version : V15.4.0 - Application du garde-fou temporel anti-rebond de 500 ms sur la trame PTTState pour stabiliser la balise
+// Module de rendu graphique principal de l'IHM intégrant les boucles de traitement des messages asynchrones
 
 use eframe::egui::{self, Color32, RichText, ScrollArea, Frame, Margin, Rounding, Stroke};
 use std::time::{Duration, Instant};
@@ -80,7 +80,12 @@ impl eframe::App for Ic7300App {
                             0x14 => self.comp_meter = val, _ => {}
                         }
                     }
-                    RadioUpdate::PTTState(is_tx_state) => { self.is_tx = is_tx_state; }
+                    RadioUpdate::PTTState(is_tx_state) => {
+                        // Application sécurisée du garde-fou temporel sur l'état PTT
+                        if self.last_user_write.elapsed() >= Duration::from_millis(500) {
+                            self.is_tx = is_tx_state;
+                        }
+                    }
                     RadioUpdate::AfGain(val) => { if self.last_user_write.elapsed() >= Duration::from_millis(500) { self.af_gain = val; } }
                     RadioUpdate::RfGain(val) => { if self.last_user_write.elapsed() >= Duration::from_millis(500) { self.rf_gain = val; } }
                     RadioUpdate::Squelch(val) => { if self.last_user_write.elapsed() >= Duration::from_millis(500) { self.squelch = val; } }
@@ -100,6 +105,12 @@ impl eframe::App for Ic7300App {
                         // Réception et traitement du balayage de spectre défragmenté
                         self.scope_state.push_sweep(&sweep);
                     }
+                    RadioUpdate::ScopeSpan(span) => {
+                        // Réception et synchronisation asynchrone descendante de la bande passante physique de l'Icom
+                        if self.last_user_write.elapsed() >= Duration::from_millis(500) {
+                            self.scope_state.span = span;
+                        }
+                    }
                     RadioUpdate::UsbRxLevel(val) => { if self.last_user_write.elapsed() >= Duration::from_millis(500) { self.usb_rx_level = val; } }
                     RadioUpdate::UsbTxLevel(val) => { if self.last_user_write.elapsed() >= Duration::from_millis(500) { self.usb_tx_level = val; } }
                     RadioUpdate::Disconnected(msg) => { disconnect_msg = Some(msg); }
@@ -110,6 +121,9 @@ impl eframe::App for Ic7300App {
             if repaint_needed { ctx.request_repaint(); }
         }
 
+        // --- AUTOMATE DU LANCEUR D'APPELS AUTOMATIQUES ---
+        self.update_keyer_logic(ctx);
+
         let mut visuals = egui::Visuals::dark();
         visuals.window_rounding = Rounding::same(8.0);
         visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(25, 25, 30);
@@ -118,22 +132,46 @@ impl eframe::App for Ic7300App {
 
         let panel_frame = Frame::none().fill(Color32::from_rgb(28, 28, 33)).rounding(Rounding::same(8.0)).stroke(Stroke::new(1.5, Color32::from_rgb(50, 50, 55))).inner_margin(Margin::same(12.0));
 
-        // --- EN-TÊTE ---
+        // --- EN-TÊTE COMPACTÉ AVEC MENU DÉROULANT ---
         egui::TopBottomPanel::top("top_panel").frame(Frame::default().fill(Color32::from_rgb(20, 20, 25)).inner_margin(8.0)).show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.button("Configuration COM").clicked() { self.show_config_window = !self.show_config_window; }
-                ui.separator();
-                if ui.button("Gérer les Mémoires").clicked() { self.show_mem_manager = !self.show_mem_manager; }
-                ui.separator();
-                if ui.button("Réglages Gains").clicked() { self.show_gains_window = !self.show_gains_window; }
-                ui.separator();
-                if ui.button("Import/Export CSV").clicked() { self.show_csv_manager = !self.show_csv_manager; }
-                ui.separator();
-                if ui.button("Mini-Wiki / Info").clicked() { self.show_info_window = !self.show_info_window; }
-                ui.separator();
-                
-                // Bouton d'accès au Spectre / Waterfall
-                if ui.button("Spectre / Waterfall").clicked() { self.scope_state.show_window = !self.scope_state.show_window; }
+                // Menu déroulant regroupant tous les outils et fenêtres pour économiser l'espace
+                ui.menu_button("📂 Menu Principal", |ui| {
+                    ui.set_width(180.0);
+                    
+                    if ui.button("⚙ Configuration COM").clicked() { 
+                        self.show_config_window = !self.show_config_window; 
+                        ui.close_menu();
+                    }
+                    if ui.button("Gérer les Mémoires").clicked() { 
+                        self.show_mem_manager = !self.show_mem_manager; 
+                        ui.close_menu();
+                    }
+                    if ui.button("Réglages Gains").clicked() { 
+                        self.show_gains_window = !self.show_gains_window; 
+                        ui.close_menu();
+                    }
+                    if ui.button("Import/Export CSV").clicked() { 
+                        self.show_csv_manager = !self.show_csv_manager; 
+                        ui.close_menu();
+                    }
+                    if ui.button("Mini-Wiki / Info").clicked() { 
+                        self.show_info_window = !self.show_info_window; 
+                        ui.close_menu();
+                    }
+                    
+                    ui.separator();
+                    
+                    if ui.button("Spectre / Waterfall").clicked() { 
+                        self.scope_state.show_window = !self.scope_state.show_window; 
+                        ui.close_menu();
+                    }
+                    if ui.button("Lanceur d'Appel").clicked() { 
+                        self.keyer_state.show_window = !self.keyer_state.show_window; 
+                        ui.close_menu();
+                    }
+                });
+
                 ui.separator();
                 
                 if !self.is_connected {
@@ -151,7 +189,7 @@ impl eframe::App for Ic7300App {
                         
                         // Bouton d'allumage physique direct (Allumer et se connecter de force)
                         let power_color = Color32::from_rgb(183, 28, 28); // Rouge foncé discret
-                        if custom_3d_button_sized(ui, "⏻ Allumer", false, power_color, egui::vec2(85.0, 22.0)) {
+                        if custom_3d_button_sized(ui, "Allumer", false, power_color, egui::vec2(85.0, 22.0)) {
                             if let Err(e) = self.connect_and_power_on(ctx.clone()) { fprint_err(&e); }
                         }
                     });
@@ -169,8 +207,8 @@ impl eframe::App for Ic7300App {
                         ui.separator();
                         
                         // Bouton d'extinction propre (Éteindre et Déconnecter proprement)
-                        let power_color = Color32::from_rgb(0, 230, 118); // Vert vif actif
-                        if custom_3d_button_sized(ui, "⏻ Éteindre", true, power_color, egui::vec2(85.0, 22.0)) {
+                        let power_color = Color32::from_rgb(0, 130, 20); // Vert vif actif
+                        if custom_3d_button_sized(ui, "Éteindre", true, power_color, egui::vec2(85.0, 22.0)) {
                             self.power_off_and_disconnect();
                         }
                     });
@@ -178,13 +216,14 @@ impl eframe::App for Ic7300App {
             });
         });
 
-        // Appels déportés vers src/gui/dialogs.rs et src/gui/scope.rs
+        // Appels déportés vers src/gui/dialogs.rs, src/gui/scope.rs et src/gui/keyer.rs
         self.show_wiki_window(ctx);
         self.show_config_window(ctx);
         self.show_memories_window(ctx);
         self.show_csv_window(ctx);
         self.show_gains_window(ctx);
         self.show_scope_window(ctx); // Rendu de la fenêtre modale du Spectre
+        self.show_keyer_window(ctx); // Rendu de la fenêtre modale du Lanceur d'Appels / Balise
 
         // --- Layout principal à trois colonnes ---
         egui::CentralPanel::default().frame(Frame::default().fill(Color32::from_rgb(15, 15, 20)).inner_margin(10.0)).show(ctx, |ui| {
