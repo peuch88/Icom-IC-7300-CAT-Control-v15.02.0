@@ -11,7 +11,7 @@
 
 utilisation et configurations
 
-[Manuel d'utilisation](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/setup_icom_controller_v15.04.0.exe)
+[Manuel d'utilisation](https://github.com/peuch88/Icom-IC-7300-CAT-Control-v15.02.0/blob/main/Tutoriel géneral.html)
 
 
 
