@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide de Compilation Rust - Contrôleur CAT IC-7300</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: #0f0f12;
+            color: #e1e1e6;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: #1a1a24;
+            border-bottom: 1px solid #2e2e3a;
+            border-radius: 0 0 16px 16px;
+        }
+        h1 {
+            color: #00e676; /* SDR Green */
+            font-size: 2.2em;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #a8a8b2;
+            font-size: 1.2em;
+            margin: 0;
+        }
+        main {
+            padding: 20px 0;
+        }
+        section {
+            background-color: #16161c;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #2e2e38;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        h2 {
+            color: #2196f3; /* Electric Blue */
+            font-size: 1.5em;
+            border-bottom: 2px solid #2e2e38;
+            padding-bottom: 8px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        h3 {
+            color: #ff9100; /* Warm Orange */
+            font-size: 1.15em;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        p, li {
+            font-size: 1em;
+            color: #c4c4cc;
+        }
+        ul, ol {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        code {
+            background-color: #282a36;
+            color: #ff79c6;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        pre {
+            background-color: #1b1c23;
+            color: #f8f8f2;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #2e2e38;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .highlight {
+            color: #00e676;
+            font-weight: bold;
+        }
+        .command {
+            color: #50fa7b;
+            font-weight: bold;
+        }
+        .comment {
+            color: #6272a4;
+            font-style: italic;
+        }
+        .alert-box {
+            background-color: rgba(255, 145, 0, 0.08);
+            border-left: 4px solid #ff9100;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+        .alert-box strong {
+            color: #ff9100;
+        }
+        .success-box {
+            background-color: rgba(0, 230, 118, 0.08);
+            border-left: 4px solid #00e676;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+        .success-box strong {
+            color: #00e676;
+        }
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 0.85em;
+            color: #7c7c8a;
+            border-top: 1px solid #2e2e38;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>⚙️ Guide de Compilation & Arborescence Rust</h1>
+        <p class="subtitle">Compiler, générer l'exécutable Release et structurer le code source du contrôleur CAT</p>
+    </div>
+</header>
+
+<div class="container">
+    <main>
+        
+        <!-- SECTION 1 : PRÉREQUIS -->
+        <section>
+            <h2>1. Prérequis : Installer l'environnement Rust</h2>
+            <p>Pour compiler cette application sur votre ordinateur Windows (64 bits), vous devez installer la chaîne d'outils de développement officielle de Rust (Rustup) ainsi que le compilateur C++ de Microsoft (requis pour lier l'exécutable Windows).</p>
+            
+            <h3>1.1 Étape 1 : Installer le compilateur C++ de Microsoft (MSVC)</h3>
+            <p>Rust a besoin de l'outil de liaison (Linker) officiel de Windows pour générer un fichier <code>.exe</code>.</p>
+            <ol>
+                <li>Allez sur le site officiel de Visual Studio de Microsoft.</li>
+                <li>Téléchargez et lancez le <strong>Visual Studio Installer</strong> (gratuit).</li>
+                <li>Dans l'installateur, sous l'onglet "Charges de travail", cochez impérativement : <br>
+                    <span class="highlight">☑ Développement Desktop en C++</span> (Desktop development with C++).</li>
+                <li>Cliquez sur "Installer" en bas à droite et attendez la fin de l'installation.</li>
+            </ol>
+
+            <h3>1.2 Étape 2 : Installer la chaîne d'outils Rust</h3>
+            <ol>
+                <li>Allez sur le site officiel de Rust : <a href="https://rustup.rs/" target="_blank">https://rustup.rs/</a>.</li>
+                <li>Téléchargez l'installateur pour Windows 64 bits : <code>rustup-init.exe</code>.</li>
+                <li>Lancez le fichier. Une console s'ouvre.</li>
+                <li>Tapez <strong><code>1</code></strong> (option par défaut : *Proceed with standard installation*) et appuyez sur <strong>Entrée</strong>.</li>
+                <li>Une fois l'installation terminée, fermez toutes vos fenêtres d'invite de commande (PowerShell ou CMD) pour appliquer les variables d'environnement.</li>
+            </ol>
+
+            <h3>1.3 Étape 3 : Vérifier l'installation</h3>
+            <p>Ouvrez une nouvelle console PowerShell et saisissez la commande suivante :</p>
+            <pre><span class="command">rustc --version</span></pre>
+            <p>Si l'installation a réussi, la console affiche la version active de Rust (ex : <code>rustc 1.80.0 (64-bit)</code>).</p>
+        </section>
+
+        <!-- SECTION 2 : ARBORESCENCE DU PROJET -->
+        <section>
+            <h2>2. Arborescence du Projet</h2>
+            <p>Pour que le compilateur Rust localise tous vos fichiers de code source et que l'application s'exécute correctement, vous devez structurer votre dossier de projet de la manière suivante :</p>
+            
+            <pre>
+icom_controller/
+├── <span class="highlight">Cargo.toml</span>                              <span class="comment"># Fichier de configuration des dépendances (egui, rodio, etc.)</span>
+├── <span class="highlight">icon.ico</span>                                <span class="comment"># Icône graphique de l'application</span>
+├── <span class="highlight">info.txt</span>                                <span class="comment"># Mini-Wiki d'aide lu au démarrage</span>
+├── <span class="highlight">memories.db</span>                             <span class="comment"># Base de données SQLite (créée automatiquement)</span>
+├── <span class="highlight">samples/</span>                                <span class="comment"># Dossier contenant vos fichiers audio MP3 d'appels</span>
+└── <span class="highlight">src/</span>                                    <span class="comment"># Dossier du code source</span>
+    ├── <span class="highlight">main.rs</span>                             <span class="comment"># Point d'entrée de l'exécutable (windows_subsystem)</span>
+    ├── <span class="highlight">comm.rs</span>                             <span class="comment"># Thread de communication série CI-V & Proxy CAT</span>
+    ├── <span class="highlight">database.rs</span>                         <span class="comment"># Interfaçage SQLite et importations CSV/EiBi</span>
+    └── <span class="highlight">gui/</span>                                <span class="comment"># Dossier de l'interface graphique (IHM)</span>
+        ├── <span class="highlight">mod.rs</span>                          <span class="comment"># Déclaration des sous-modules graphiques</span>
+        ├── <span class="highlight">widgets.rs</span>                      <span class="comment"># Primitives de dessin 3D (boutons, VU-mètres, faders)</span>
+        ├── <span class="highlight">dialogs.rs</span>                      <span class="comment"># Fenêtres modales de réglages, de mémoires et de COM</span>
+        ├── <span class="highlight">app.rs</span>                          <span class="comment"># Modèle Ic7300App et persistance SQL</span>
+        ├── <span class="highlight">view.rs</span>                         <span class="comment"># Rendu principal de l'IHM et réception asynchrone</span>
+        ├── <span class="highlight">scope.rs</span>                        <span class="comment"># Spectre FFT dynamique de Vert à Rouge et cascade</span>
+        └── <span class="highlight">keyer.rs</span>                        <span class="comment"># Lanceur d'appels automatiques (automate audio)</span>
+            </pre>
+        </section>
+
+        <!-- SECTION 3 : COMPILATION -->
+        <section>
+            <h2>3. Commandes de Compilation & d'Exécution</h2>
+            <p>Toutes les commandes de compilation se lancent à partir d'un terminal (PowerShell ou CMD) ouvert à la racine du dossier de votre projet (là où se trouve le fichier <code>Cargo.toml</code>).</p>
+
+            <h3>3.1 Vérifier le code sans compiler (Vérification ultra-rapide)</h3>
+            <p>Si vous souhaitez simplement vous assurer qu'il n'y a pas d'erreur de syntaxe ou de typage dans votre code sans attendre que le compilateur génère les binaires :</p>
+            <pre><span class="command">cargo check</span></pre>
+
+            <h3>3.2 Lancer l'application en mode "Debug"</h3>
+            <p>Le mode Debug compile le code très rapidement sans appliquer d'optimisation. Il conserve toutes les informations de débogage et affiche une console DOS noire en arrière-plan pour afficher vos logs et messages d'erreurs en temps réel.</p>
+            <pre><span class="command">cargo run</span></pre>
+            <p><em>Cette commande télécharge automatiquement les dépendances si nécessaire, compile le projet et lance immédiatement l'IHM à l'écran.</em></p>
+
+            <h3>3.3 Générer le binaire optimisé pour l'utilisation ("Release")</h3>
+            <p>Lorsque votre contrôleur CAT est finalisé, vous devez générer la version **Release** définitive. Cette commande applique des optimisations de niveau 3 sur le code : les boucles sont déroulées, le code mort est éliminé et la vitesse d'exécution est démultipliée (le spectre et le waterfall deviennent ultra-fluides).</p>
+            <pre><span class="command">cargo build --release</span></pre>
+            <p><em>Le temps de compilation en mode Release est plus long car le compilateur Rust optimise rigoureusement le binaire de sortie.</em></p>
+        </section>
+
+        <!-- SECTION 4 : LOCALISATION ET DISTRIBUTION -->
+        <section>
+            <h2>4. Où trouver l'exécutable et comment l'exécuter</h2>
+            
+            <h3>4.1 Emplacements des fichiers générés</h3>
+            <p>Une fois les compilations terminées, Cargo range les fichiers exécutables générés dans le dossier <code>target/</code> :</p>
+            <ul>
+                <li>Exécutable de test (Debug) : <code>icom_controller/target/debug/icom_controller.exe</code></li>
+                <li>Exécutable de production (Release) : <strong><code>icom_controller/target/release/icom_controller.exe</code></strong></li>
+            </ul>
+
+            <h3>4.2 Masquer la console noire DOS en mode Release</h3>
+            <p>Pour éviter qu'une fenêtre de commande noire (invite de commande Windows) ne s'affiche derrière l'interface graphique de votre application en mode Release, assurez-vous que la ligne suivante est bien présente tout au début de votre fichier <strong>`src/main.rs`</strong> :</p>
+            <pre><span class="comment">#![cfg_dist(not(debug_assertions))]</span>
+<span class="highlight">#![windows_subsystem = "windows"]</span></pre>
+            <p><em>Cette directive indique au compilateur Windows de masquer silencieusement la console pour les versions de production.</em></p>
+
+            <h3>4.3 Comment distribuer et déployer votre exécutable</h3>
+            <p>Pour exécuter l'application sur un autre ordinateur Windows sans avoir besoin d'installer Rust, vous avez uniquement besoin de copier le dossier contenant les fichiers indispensables de fonctionnement :</p>
+            
+            <div class="success-box">
+                <strong>📦 Structure minimale de déploiement autonome :</strong>
+                <p>Créez un dossier sur votre bureau (par exemple nommé <code>IcomController/</code>) et déposez-y uniquement ces éléments :</p>
+                <ul>
+                    <li>Le fichier <strong>`icom_controller.exe`</strong> (copié depuis <code>target/release/</code>)</li>
+                    <li>Le fichier d'aide <strong>`info.txt`</strong> (requis pour éviter que l'IHM ne plante en cherchant l'aide)</li>
+                    <li>L'icône de l'application <strong>`icon.ico`</strong></li>
+                    <li>Votre dossier <strong>`samples/`</strong> contenant vos fichiers d'appels MP3</li>
+                </ul>
+                <p><em>La base de données <code>memories.db</code> sera recréée automatiquement par l'application lors de son premier double-clic sur la nouvelle machine !</em></p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        Guide de compilation officiel Rust &bull; Projet icom_controller v15.04.02 &bull; Juillet 2026
+    </footer>
+</div>
+
+</body>
+</html>

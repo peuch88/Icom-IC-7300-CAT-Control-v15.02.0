@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutoriel : Interconnexion CAT Rust & MMSSTV via com0com</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: #121214;
+            color: #e1e1e6;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background-color: #1a1a1e;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            border: 1px solid #2e2e35;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: #00e676;
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #a8a8b2;
+            font-size: 1.1em;
+            margin-top: 0;
+        }
+        h2 {
+            color: #2196f3;
+            font-size: 1.4em;
+            border-bottom: 1px solid #2e2e35;
+            padding-bottom: 8px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: #ff9100;
+            font-size: 1.1em;
+            margin-top: 20px;
+        }
+        p, li {
+            font-size: 1em;
+            color: #c4c4cc;
+        }
+        ul, ol {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        a {
+            color: #00e676;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: #5af2a1;
+            text-decoration: underline;
+        }
+        code {
+            background-color: #282a36;
+            color: #ff79c6;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        .highlight {
+            color: #2196f3;
+            font-weight: bold;
+        }
+        .alert {
+            background-color: rgba(255, 145, 0, 0.08);
+            border-left: 4px solid #ff9100;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+        .alert strong {
+            color: #ff9100;
+        }
+        .success {
+            background-color: rgba(0, 230, 118, 0.08);
+            border-left: 4px solid #00e676;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+        .success strong {
+            color: #00e676;
+        }
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #2e2e35;
+            font-size: 0.85em;
+            color: #7c7c8a;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🎙️ Tutoriel d'Interconnexion</h1>
+        <p class="subtitle">Contrôleur CAT Rust & MMSSTV via la passerelle com0com (Windows 64-bit)</p>
+    </header>
+
+    <main>
+        <p>Ce tutoriel vous guide pas à pas pour créer un pont de communication virtuel bidirectionnel asynchrone. Notre contrôleur Rust se connecte au port COM physique de votre émetteur-récepteur (ex : <span class="highlight">COM3</span>), tout en écoutant l'extrémité virtuelle <span class="highlight">COM2</span>. De son côté, MMSSTV se connecte à l'autre extrémité virtuelle <span class="highlight">COM4</span> pour lire la fréquence et piloter le PTT à la volée.</p>
+
+        <section>
+            <h2>Étape 1 : Téléchargement des logiciels nécessaires</h2>
+            <ul>
+                <li><strong>com0com v3.0.0.0 (Version signée 64-bit)</strong> :<br>
+                    <a href="https://sourceforge.net/projects/com0com/files/com0com/3.0.0.0/" target="_blank">Page de téléchargement officielle sur SourceForge</a>.<br>
+                    <em>Téléchargez et décompressez l'archive nommée <code>com0com-3.0.0.0-i386-and-x64-signed.zip</code>.</em>
+                </li>
+                <li><strong>MMSSTV (Slow Scan TV)</strong> :<br>
+                    <a href="https://hamsoft.ca/pages/mmsstv.php" target="_blank">Page officielle de MM HamSoft (MMSSTV Standard)</a> ou la version modernisée <a href="https://hamsoft.ca/pages/mmsstv_yoniq.php" target="_blank">MMSSTV YONIQ</a>.
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Étape 2 : Installation et renommage des ports dans com0com</h2>
+            <p>Par défaut, l'installation de com0com crée une paire virtuelle nommée <code>CNCA0</code> et <code>CNCB0</code>. Comme MMSSTV ne gère que les ports nommés classiquement (<code>COM1</code> à <code>COM8</code>), nous devons obligatoirement les renommer :</p>
+            
+            <ol>
+                <li>Décompressez l'archive de com0com et lancez l'installation (<code>setup.exe</code>).</li>
+                <li>Une fois l'installation terminée, ouvrez votre menu Démarrer de Windows, cherchez le dossier <strong>com0com</strong>, faites un clic droit sur l'application <strong>Setup</strong> et choisissez <strong>"Exécuter en tant qu'administrateur"</strong> (requis pour enregistrer les modifications dans le registre Windows).</li>
+                <li>Dans la fenêtre de configuration, cochez impérativement la case <strong><code>use Ports class</code></strong> située en haut à droite pour les deux ports. <em>(Cette option permet à Windows de déclarer ces ports comme de vrais ports série de communication)</em>.</li>
+                <li>Dans le champ de saisie textuelle de gauche (à la place de <code>CNCA0</code>), tapez : <code>COM2</code>.</li>
+                <li>Dans le champ de saisie de droite (à la place de <code>CNCB0</code>), tapez : <code>COM4</code>.</li>
+                <li>Cliquez sur le bouton <strong><code>Apply</code></strong> (Appliquer) en bas à droite.</li>
+                <li>Windows va émettre un signal sonore d'ajout matériel et configurer les deux ports virtuels. Vous pouvez maintenant fermer l'utilitaire.</li>
+            </ol>
+
+            <div class="alert">
+                <strong>⚠️ Attention aux ports occupés :</strong> Si les ports <code>COM2</code> ou <code>COM4</code> sont déjà affectés à des périphériques physiques réels sur votre PC, choisissez d'autres numéros inférieurs à 9 libres (par exemple <code>COM5</code> et <code>COM7</code>) dans l'utilitaire de configuration.
+            </div>
+        </section>
+
+        <section>
+            <h2>Étape 3 : Configuration de notre Contrôleur Rust</h2>
+            <ol>
+                <li>Lancez notre application de contrôle CAT Rust.</li>
+                <li>Ouvrez le menu déroulant <strong>📂 Menu Principal ▾</strong> et cliquez sur <strong>Configuration COM</strong>.</li>
+                <li>Assurez-vous que le <strong>Port Série</strong> matériel principal est correctement connecté à votre radio (ex : <code>COM3</code> de l'IC-7300, configuré à <code>115200</code> bauds).</li>
+                <li>Dans la section <strong>🔌 Pont CAT Virtuel (MMSSTV / Log)</strong> :
+                    <ul>
+                        <li>Dans le champ <strong>Port COM Virtuel</strong>, sélectionnez ou saisissez manuellement : <code>COM2</code>.</li>
+                    </ul>
+                </li>
+                <li>Cliquez sur le bouton principal de l'en-tête de l'application : <strong>Connecter le Transceiver</strong>.</li>
+            </ol>
+            <p><em>Le contrôleur Rust est maintenant raccordé à la radio sur le port COM3 physique et a ouvert une écoute asynchrone sur l'extrémité virtuelle COM2.</em></p>
+        </section>
+
+        <section>
+            <h2>Étape 4 : Configuration de MMSSTV</h2>
+            <ol>
+                <li>Lancez <strong>MMSSTV</strong> sur votre PC.</li>
+                <li>Allez dans le menu supérieur : <strong>Option</strong> $\rightarrow$ <strong>Setup MMSSTV</strong>.</li>
+                <li>Allez sur l'onglet <strong>TX</strong> :
+                    <ul>
+                        <li>Dans la section <strong>PTT</strong> (ou <em>Radio Command</em> selon la version), cliquez sur le bouton <strong>Radio Command</strong>.</li>
+                        <li>Configurez les paramètres d'interconnexion ainsi :
+                            <ul>
+                                <li><strong>Port</strong> : Sélectionnez <code>COM4</code> (l'autre extrémité de notre tunnel com0com).</li>
+                                <li><strong>Model</strong> : Choisissez un émetteur Icom classique (ex : <code>IC-746</code> ou <code>IC-706</code>). <em>(Grâce à notre décodeur d'adresse dynamique, notre proxy Rust interceptera n'importe quelle adresse CI-V envoyée par MMSSTV et y répondra à l'identique)</em>.</li>
+                                <li><strong>Baud Rate</strong> : Choisissez la même vitesse (ex : <code>115200</code> ou <code>19200</code>).</li>
+                            </ul>
+                        </li>
+                        <li>Cliquez sur <strong>OK</strong> pour enregistrer.</li>
+                    </ul>
+                </li>
+                <li>Allez sur l'onglet <strong>Misc</strong> (Divers) pour router le flux audio :
+                    <ul>
+                        <li>Dans la section <strong>Sound Card</strong>, sélectionnez le périphérique <strong>USB Audio CODEC</strong> de l'Icom 7300 pour l'entrée (<strong>Input/RX</strong>) et pour la sortie (<strong>Output/TX</strong>).</li>
+                        <li>Cliquez sur <strong>OK</strong>.</li>
+                    </ul>
+                </li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Étape 5 : Test de la synchronisation bidirectionnelle</h2>
+            <div class="success">
+                <strong>✓ Liaison opérationnelle :</strong> Vous pouvez désormais tester la synchronisation en temps réel :
+                <ul>
+                    <li><strong>Sens Contrôleur &rarr; MMSSTV</strong> : Tournez le bouton rotatif VFO ou changez de bande dans l'application Rust. La fréquence affichée en haut à droite de MMSSTV se met à jour instantanément !</li>
+                    <li><strong>Sens MMSSTV &rarr; Contrôleur</strong> : Double-cliquez sur une station ou modifiez la fréquence dans le waterfall de MMSSTV. Notre contrôleur Rust reçoit l'ordre, ajuste son cadran local et règle la fréquence physique de votre IC-7300.</li>
+                    <li><strong>Émission SSTV</strong> : Cliquez sur <strong>TX</strong> dans MMSSTV. Le contrôleur Rust intercepte l'ordre, bascule la radio en mode DATA, enclenche le PTT physique de l'Icom, et MMSSTV module le son de l'image directement sur l'air !</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        Contrôleur CAT asynchrone pour Icom IC-7300 &bull; Projet Rust & egui v15.04.04
+    </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuel d'Instruction & Guide d'Installation - Contrôleur CAT IC-7300</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: #0f0f12;
+            color: #e1e1e6;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: #1a1a24;
+            border-bottom: 1px solid #2e2e3a;
+            border-radius: 0 0 16px 16px;
+        }
+        h1 {
+            color: #00e676; /* SDR Green */
+            font-size: 2.2em;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #a8a8b2;
+            font-size: 1.2em;
+            margin: 0;
+        }
+        main {
+            padding: 20px 0;
+        }
+        section {
+            background-color: #16161c;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #2e2e38;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        h2 {
+            color: #2196f3; /* Electric Blue */
+            font-size: 1.5em;
+            border-bottom: 2px solid #2e2e38;
+            padding-bottom: 8px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        h3 {
+            color: #ff9100; /* Warm Orange */
+            font-size: 1.15em;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        p, li {
+            font-size: 1em;
+            color: #c4c4cc;
+        }
+        ul, ol {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        code {
+            background-color: #282a36;
+            color: #ff79c6;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        .highlight {
+            color: #00e676;
+            font-weight: bold;
+        }
+        /* Style des images d'illustration réservées */
+        .img-placeholder {
+            background-color: #202026;
+            border: 2px dashed #4e4e5a;
+            color: #8a8a9a;
+            height: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin: 25px 0;
+            border-radius: 8px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .img-placeholder-title {
+            font-weight: bold;
+            color: #e1e1e6;
+            margin-bottom: 8px;
+        }
+        .img-placeholder-desc {
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        .alert-box {
+            background-color: rgba(255, 145, 0, 0.08);
+            border-left: 4px solid #ff9100;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+        .alert-box strong {
+            color: #ff9100;
+        }
+        .success-box {
+            background-color: rgba(0, 230, 118, 0.08);
+            border-left: 4px solid #00e676;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+        }
+        .success-box strong {
+            color: #00e676;
+        }
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 0.85em;
+            color: #7c7c8a;
+            border-top: 1px solid #2e2e38;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>🎙️ Guide Complet du Contrôleur CAT IC-7300</h1>
+        <p class="subtitle">Installation, configuration matérielle, cartes son système et manuel d'instruction</p>
+    </div>
+</header>
+
+<div class="container">
+    <main>
+        
+        <!-- SECTION 1 : INTRODUCTION -->
+        <section>
+            <h2>Introduction</h2>
+            <p>Bienvenue dans le guide d'utilisation de votre contrôleur d'émetteur-récepteur Icom IC-7300 écrit en Rust. Ce logiciel a été conçu pour simplifier l'exploitation quotidienne de votre station radioamateur. Entièrement asynchrone, il vous permet de piloter la radio, de visualiser le spectre électromagnétique en temps réel, de gérer une base de données de fréquences et d'automatiser vos lancements d'appels de manière fluide.</p>
+            <p>Ce guide est rédigé de façon exhaustive afin d'accompagner pas à pas les utilisateurs novices dans le paramétrage de leur station.</p>
+        </section>
+
+        <!-- SECTION 2 : INSTALLATION & PRÉREQUIS -->
+        <section>
+            <h2>1. Installation et Prérequis Système</h2>
+            <p>Avant de lancer l'application pour la première fois, quelques étapes simples d'installation matérielle et logicielle sont requises sur votre ordinateur sous Windows (64 bits).</p>
+            
+            <h3>1.1 Raccordement physique</h3>
+            <p>Reliez votre émetteur-récepteur Icom IC-7300 à un port USB libre de votre PC à l'aide d'un câble USB standard (type A vers type B). Ce câble unique transporte à la fois les commandes de contrôle (CAT) et les signaux audio (carte son interne).</p>
+
+            <h3>1.2 Installation du pilote de communication (Driver Silicon Labs)</h3>
+            <p>Pour que Windows reconnaisse le câble USB et crée un port de communication virtuel (ex : <code>COM3</code>), vous devez installer le pilote de la puce intégrée au poste :</p>
+            <ul>
+                <li>Allez sur le site officiel de Silicon Labs ou de l'assistance Icom.</li>
+                <li>Téléchargez et installez le pilote nommé <strong>CP210x USB to UART Bridge VCP Drivers</strong> pour Windows.</li>
+                <li>Une fois installé, débranchez puis rebranchez le câble USB de la radio.</li>
+            </ul>
+
+            <div class="img-placeholder">
+                <span class="img-placeholder-title">[IMAGE 1 : Le Gestionnaire de périphériques Windows]</span>
+                <span class="img-placeholder-desc">Illustration montrant l'emplacement du port virtuel "Silicon Labs CP210x... (COMx)" sous la catégorie "Ports (COM et LPT)".</span>
+            </div>
+
+            <h3>1.3 Arborescence locale et dossier "samples"</h3>
+            <p>L'application s'exécute de manière portable (sans installation lourde). Lors de son premier lancement, elle crée automatiquement dans son répertoire :</p>
+            <ul>
+                <li>La base de données SQLite <code>memories.db</code> pour stocker vos réglages et mémoires.</li>
+                <li>Un dossier nommé <code>samples/</code>. C'est dans ce dossier que seront automatiquement copiés tous les fichiers MP3 d'appels que vous déciderez d'utiliser dans l'application.</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 3 : CONFIGURATION DES CARTES SON -->
+        <section>
+            <h2>2. Paramétrage Windows des Cartes Son (Mode Non Exclusif)</h2>
+            <p>L'IC-7300 intègre sa propre carte son (codec USB). Pour que vos fichiers MP3 d'appels automatiques ou vos logiciels de trafic (comme WSJT-X, MMSSTV) puissent émettre et recevoir simultanément sans blocage, il est <strong>indispensable</strong> de désactiver le "Mode Exclusif" dans Windows et de régler l'échantillonnage de manière rigoureuse.</p>
+
+            <h3>2.1 Éliminer le blocage du "Mode Exclusif"</h3>
+            <p>Par défaut, Windows permet au premier logiciel lancé de s'approprier exclusivement la carte son, générant des erreurs d'initialisation sur les autres applications. Pour couper ce comportement :</p>
+            <ol>
+                <li>Sur votre clavier PC, appuyez sur les touches <code>Windows + R</code>, tapez <strong><code>mmsys.cpl</code></strong> et appuyez sur <strong>Entrée</strong> pour ouvrir la fenêtre de gestion audio classique.</li>
+                <li>Dans l'onglet <strong>Lecture</strong>, faites un clic droit sur <strong>Haut-parleurs (USB Audio CODEC)</strong> et choisissez <strong>Propriétés</strong>.</li>
+                <li>Allez dans l'onglet <strong>Statistiques avancées</strong>.</li>
+                <li>Dans la section <em>Mode Exclusif</em>, <strong>décochez les deux cases</strong> :
+                    <ul>
+                        <li><span class="highlight">[ ]</span> <em>Autoriser les applications à prendre le contrôle exclusif de ce périphérique</em></li>
+                        <li><span class="highlight">[ ]</span> <em>Donner la priorité aux applications en mode exclusif</em></li>
+                    </ul>
+                </li>
+                <li>Cliquez sur <strong>Appliquer</strong> puis sur <strong>OK</strong>.</li>
+            </ol>
+            <p><em>Répétez exactement la même procédure dans l'onglet <strong>Enregistrement</strong> en faisant un clic droit sur le périphérique <strong>Microphone (USB Audio CODEC)</strong>.</em></p>
+
+            <div class="img-placeholder">
+                <span class="img-placeholder-title">[IMAGE 2 : Fenêtre des Statistiques Avancées du Périphérique Audio]</span>
+                <span class="img-placeholder-desc">Capture d'écran de l'onglet "Statistiques avancées" avec les deux cases du "Mode Exclusif" décochées.</span>
+            </div>
+
+            <h3>2.2 Configurer le taux d'échantillonnage natif (48 000 Hz)</h3>
+            <p>La carte son de l'Icom fonctionne de manière optimale à une fréquence d'échantillonnage de 48000 Hz (qualité DVD). Toujours dans l'onglet <strong>Statistiques avancées</strong> des propriétés audio, assurez-vous de sélectionner :</p>
+            <ul>
+                <li><strong>2 canaux, 16 bits, 48000 Hz (Qualité DVD)</strong> pour la Lecture.</li>
+                <li><strong>1 canal, 16 bits, 48000 Hz (Qualité DVD)</strong> (ou 2 canaux selon les versions de pilotes) pour l'Enregistrement.</li>
+            </ul>
+
+            <div class="alert-box">
+                <strong>⚠️ Alerte Volume Windows :</strong> Pensez à vérifier l'onglet <strong>Niveaux</strong> des propriétés de lecture du périphérique <em>USB Audio CODEC</em>. Par défaut, Windows l'initialise souvent à 0 % ou en sourdine (Mute). Réglez-le entre 40 % et 60 % pour éviter de saturer ou d'émettre un signal muet.
+            </div>
+        </section>
+
+        <!-- SECTION 4 : CONFIGURATION DE L'ICOM IC-7300 -->
+        <section>
+            <h2>3. Configuration Interne de l'Icom IC-7300</h2>
+            <p>Pour que le poste accepte d'être piloté par l'ordinateur et de commuter sa source d'entrée audio sur la ligne USB, plusieurs paramètres doivent être ajustés dans le menu physique de la radio.</p>
+
+            <h3>3.1 Réglages des Connecteurs (MENU &gt; SET &gt; Connectors)</h3>
+            <p>Appuyez sur le bouton physique <strong>MENU</strong> de votre radio, touchez <strong>SET</strong> sur l'écran tactile, puis allez dans <strong>Connecteurs</strong> (Connectors) pour appliquer les réglages suivants :</p>
+            <ul>
+                <li><strong>DATA MOD (Source de modulation DATA)</strong> : Réglez impérativement sur <strong>USB</strong>. <em>(Ce paramètre indique au poste que lorsqu'il émet en mode DATA (ex: USB-D), l'audio provient du câble USB et non du micro à main)</em>.</li>
+                <li><strong>USB MOD Level (Volume d'entrée USB)</strong> : Réglez entre <strong>30% et 50%</strong>. Une valeur trop basse rendra votre MP3 muet, une valeur trop haute fera saturer l'émission.</li>
+                <li><strong>USB Serial Function (Fonction port USB)</strong> : Réglez sur <strong>CI-V</strong>.</li>
+            </ul>
+
+            <div class="img-placeholder">
+                <span class="img-placeholder-title">[IMAGE 3 : L'écran tactile de l'IC-7300 - Menu Connecteurs]</span>
+                <span class="img-placeholder-desc">Capture de l'écran physique montrant les lignes "DATA MOD = USB" et "USB MOD Level".</span>
+            </div>
+
+            <h3>3.2 Réglages de la liaison CAT (Connectors &gt; CI-V)</h3>
+            <p>Toujours dans le menu <strong>Connecteurs</strong>, entrez dans le sous-menu <strong>CI-V</strong> :</p>
+            <ul>
+                <li><strong>CI-V Baud Rate (Vitesse de liaison)</strong> : Réglez sur <strong>115200</strong> (ou configurez une vitesse identique dans notre application).</li>
+                <li><strong>CI-V Address (Adresse physique)</strong> : Assurez-vous qu'elle est sur sa valeur d'usine par défaut, à savoir <strong>94h</strong>.</li>
+                <li><strong>CI-V USB Port (Liaison port USB)</strong> : Réglez sur <strong>Unlink from [REMOTE]</strong> (Déconnecté du jack Remote).</li>
+            </ul>
+
+            <h3>3.3 Comment entendre votre propre émission (La fonction MONITOR)</h3>
+            <p>Par défaut, l'Icom coupe le haut-parleur en émission pour éviter l'effet Larsen. Si vous souhaitez entendre la lecture de votre fichier MP3 lors du lancement d'un appel automatique, vous devez activer le retour sonore de la radio :</p>
+            <ul>
+                <li>Appuyez sur le bouton physique <strong>MENU</strong> du poste, puis touchez le bouton tactile <strong>MONITOR</strong> pour l'activer (il s'éclaire en bleu). Vous pouvez régler le niveau de retour à votre convenance.</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 5 : MANUEL D'INSTRUCTION DE L'IHM -->
+        <section>
+            <h2>4. Manuel d'Instruction de l'Application</h2>
+            <p>Une fois le matériel et le système configurés, lancez le contrôleur CAT Rust. Voici comment utiliser ses différentes fonctions graphiques.</p>
+
+            <h3>4.1 En-tête supérieur et Connexion</h3>
+            <p>Dans la barre supérieure, vous trouverez l'état de votre connexion et le **Menu Principal ▾** :</p>
+            <ul>
+                <li><strong>📂 Menu Principal ▾</strong> : Un menu déroulant compact qui regroupe toutes les boîtes de dialogue de l'application (Configuration COM, Gestionnaire de mémoires SQL, Réglages des Gains, Outils CSV, Spectre et Lanceur d'appel). Cela libère l'espace de l'écran principal pour une lecture confortable.</li>
+                <li><strong>Boutons Allumer / Éteindre (⏻)</strong> : Permettent de commander l'alimentation physique de la radio directement depuis l'ordinateur grâce à l'envoi d'une trame longue de réveil CI-V.</li>
+            </ul>
+
+            <div class="img-placeholder">
+                <span class="img-placeholder-title">[IMAGE 4 : La barre d'en-tête de l'application]</span>
+                <span class="img-placeholder-desc">Vue rapprochée de la barre supérieure montrant le bouton "📂 Menu Principal ▾" et le voyant LED d'état de connexion.</span>
+            </div>
+
+            <h3>4.2 Le cadran principal (VFO & Réglage de Fréquence)</h3>
+            <p>Le cadran LCD affiche la fréquence active en gros caractères verts. Vous pouvez ajuster la fréquence de trois manières :</p>
+            <ul>
+                <li><strong>Le VFO rotatif virtuel</strong> : Faites glisser votre souris de gauche à droite sur le gros bouton rotatif gris pour monter ou descendre en fréquence, imitant le comportement d'un vrai bouton physique.</li>
+                <li><strong>La molette de la souris</strong> : Survolez simplement le cadran LCD vert et utilisez la molette de votre souris pour vous accorder de façon ultra-rapide.</li>
+                <li><strong>Le pas d'accord (TUNING STEP)</strong> : Cliquez sur n'importe quel chiffre du cadran LCD pour définir le pas de réglage (de 1 Hz à 1 MHz). Le chiffre sélectionné se met à clignoter en jaune. Vous pouvez également utiliser les flèches directionnelles de votre clavier pour monter/descendre ou changer de pas.</li>
+            </ul>
+
+            <h3>4.3 L'analyseur de spectre et la cascade (Waterfall)</h3>
+            <p>L'analyseur de spectre FFT affiche en temps réel l'activité radio sous forme d'une courbe vectorielle dont la couleur varie dynamiquement (du Vert pour le bruit de fond au Rouge pour les signaux forts) :</p>
+            <ul>
+                <li><strong>Accord par clic</strong> : Cliquez n'importe où sur le graphe du spectre ou sur la cascade d'historique (Waterfall) pour accorder instantanément votre radio sur le signal visualisé. L'accord est automatiquement arrondi au kHz le plus proche.</li>
+                <li><strong>Déplacement du curseur</strong> : Lorsque votre pointeur de souris survole l'un ou l'autre des graphiques, une barre jaune verticale suit fidèlement votre souris et affiche en direct la fréquence ciblée sous forme d'info-bulle flottante.</li>
+                <li><strong>Contrôle du Span</strong> : Le sélecteur de Span vous permet d'ajuster la largeur de bande visualisée (de ±2.5 kHz à ±500 kHz). La synchronisation est bidirectionnelle : si vous changez le Span sur l'écran tactile de la radio, l'application se met à jour instantanément, et inversement.</li>
+            </ul>
+
+            <div class="img-placeholder">
+                <span class="img-placeholder-title">[IMAGE 5 : Fenêtre de l'Analyseur de Spectre et du Waterfall]</span>
+                <span class="img-placeholder-desc">Vue de la fenêtre du spectre montrant la courbe thermique de Vert à Rouge, la cascade animée et la barre jaune du curseur avec sa bulle de fréquence.</span>
+            </div>
+
+            <h3>4.4 Le Lanceur d'Appel Automatique & Balise (Keyer)</h3>
+            <p>Le lanceur d'appel automatique est un outil puissant pour automatiser vos transmissions récurrentes (comme les appels CQ répétés). Il dispose de 20 mémoires de stockage programmables :</p>
+            <ul>
+                <li><strong>Routage audio automatique vers l'Icom</strong> : L'application énumère toutes vos cartes son et recherche automatiquement l'émetteur (<em>USB Audio CODEC</em>). Si l'Icom est raccordé, la modale se verrouille dessus et l'affiche en <strong>vert</strong>. Sinon, elle bascule en mode de repli sur vos haut-parleurs PC pour vos essais hors ligne. Vous pouvez également forcer le choix manuellement via le menu déroulant.</li>
+                <li><strong>Uploader de fichier MP3</strong> : Cliquez sur <strong>Uploader 📁</strong> pour sélectionner un fichier d'appel MP3 sur votre disque dur. L'application se charge de :
+                    <ol>
+                        <li>Créer le dossier local <code>samples/</code> s'il n'existe pas.</li>
+                        <li>Copier physiquement le fichier sélectionné dans ce dossier local.</li>
+                        <li>Calculer automatiquement la durée exacte du MP3 et l'appliquer en tant que durée d'émission (TX).</li>
+                        <li>Sauvegarder immédiatement l'état dans la base de données SQL pour ne rien perdre au redémarrage.</li>
+                    </ol>
+                </li>
+                <li><strong>Fonctionnement de l'automate</strong> : Cliquez sur <strong>▶ DÉMARRER LA BOUCLE</strong>. L'application passe automatiquement la radio en émission (PTT + DATA s'ils sont cochés), lance la lecture du MP3 vers la carte son de l'Icom, affiche une barre de progression en temps réel, puis repasse en réception à la fin du chronomètre pour la durée de l'écoute spécifiée avant de recommencer le cycle.</li>
+                <li><strong>Sécurité d'interruption absolue</strong> : À tout moment, si vous pressez la barre d'espace de votre clavier, cliquez sur le bouton de PTT de l'IHM, ou appuyez sur le bouton physique du micro à main de votre Icom, <strong>l'automate d'appel s'arrête instantanément, coupe le son MP3 et désactive le mode DATA</strong> pour vous redonner immédiatement le contrôle manuel complet du poste.</li>
+            </ul>
+        </section>
+
+        <!-- SECTION 6 : CONFIGURATION DE MMSSTV -->
+        <section>
+            <h2>5. Liaison CAT et Tunnel avec MMSSTV</h2>
+            <p>Notre application intègre un <strong>Proxy CAT / Bridge CI-V asynchrone</strong>. Cela vous permet d'interconnecter un logiciel tiers comme MMSSTV avec notre contrôleur pour qu'ils se partagent l'Icom en toute transparence [1].</p>
+
+            <h3>5.1 Création de la paire virtuelle avec com0com ou VSPE</h3>
+            <p>Puisque MMSSTV ne gère pas les ports COM supérieurs à 9, vous devez configurer une paire virtuelle utilisant des numéros bas (ex : **`COM2`** et **`COM4`**) à l'aide de votre émulateur de port série [1] :</p>
+            <ul>
+                <li><strong>com0com</strong> : Installez la version signée 64 bits. Dans l'utilitaire de configuration, cochez *use Ports class* pour vos deux ports, renommez l'un en <code>COM2</code> et l'autre en <code>COM4</code>, puis cliquez sur *Apply* [1].</li>
+                <li><strong>VSPE</strong> : Allez dans *Device > Create*, choisissez *Pair*, attribuez <code>COM2</code> et <code>COM4</code>, puis validez [1].</li>
+            </ul>
+
+            <div class="img-placeholder">
+                <span class="img-placeholder-title">[IMAGE 6 : Schéma du Tunnel de communication]</span>
+                <span class="img-placeholder-desc">Schéma explicatif : MMSSTV (COM4) <--> [Tunnel Virtuel] <--> Notre programme Rust (COM2) <--> [Liaison Physique] <--> IC-7300 (COM3 physique).</span>
+            </div>
+
+            <h3>5.2 Activation du pont dans notre application</h3>
+            <p>Ouvrez la <strong>Configuration COM</strong> de notre contrôleur, et dans la section *Pont CAT Virtuel*, sélectionnez ou saisissez manuellement : <strong><code>COM2</code></strong> [1]. Cliquez sur connecter [1]. Le contrôleur écoute désormais les ordres sur ce canal virtuel [1].</p>
+
+            <h3>5.3 Paramétrage de MMSSTV</h3>
+            <p>Dans MMSSTV, allez dans <strong>Option &gt; Setup MMSSTV</strong> :</p>
+            <ul>
+                <li>Dans l'onglet <strong>TX</strong>, cliquez sur **Radio Command** :
+                    <ul>
+                        <li><strong>Port</strong> : Choisissez **`COM4`** (l'autre extrémité de la paire com0com) [1].</li>
+                        <li><strong>Model</strong> : Sélectionnez un modèle Icom historique, par exemple **`IC-746`** ou **`IC-706`** [1]. <em>(Notre Proxy CAT détectera dynamiquement l'adresse CI-V de ce modèle et y répondra à l'identique pour assurer la liaison sans surcharge réseau)</em> [1].</li>
+                        <li><strong>Baud Rate</strong> : Choisissez la même vitesse (ex: 19200 ou 115200).</li>
+                    </ul>
+                </li>
+                <li>Dans l'onglet <strong>Misc</strong>, assurez-vous de sélectionner l'**USB Audio CODEC** de votre Icom pour l'entrée et la sortie son.</li>
+            </ul>
+            
+            <div class="success-box">
+                <strong>✓ Liaison validée :</strong> Si la configuration est correcte, changer la fréquence sur notre contrôleur Rust mettra instantanément à jour la fréquence de MMSSTV [1]. Inversement, cliquer sur une station SSTV dans MMSSTV accordera la radio physique, et lancer une transmission SSTV enclenchera automatiquement l'émission sur l'Icom [1].
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        Guide officiel d'utilisation et d'installation &bull; Projet Rust, egui & eframe v15.04.04 &bull; Juillet 2026
+    </footer>
+</div>
+
+</body>
+</html>
